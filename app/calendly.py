@@ -1,14 +1,34 @@
-from typing import Any
 import httpx
+
+
+class CalendlyAPIError(RuntimeError):
+    pass
+
 
 class CalendlyClient:
     def __init__(self, token: str):
-        self.token = token
+        if not token:
+            raise ValueError("CALENDLY_API_TOKEN is not configured.")
+        self._headers = {"Authorization": f"Bearer {token}"}
 
-    async def get_invitee(self, invitee_uri: str) -> dict[str, Any]:
-        if not self.token:
-            raise RuntimeError("Calendly API token is not configured.")
-        async with httpx.AsyncClient(timeout=15) as client:
-            response = await client.get(invitee_uri, headers={"Authorization": f"Bearer {self.token}"})
-            response.raise_for_status()
-            return response.json()["resource"]
+    @staticmethod
+    def _resource(response: httpx.Response) -> dict:
+        response.raise_for_status()
+        payload = response.json()
+        return payload.get("resource", payload)
+
+    async def get_invitee(self, invitee_uri: str) -> dict:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(invitee_uri, headers=self._headers)
+        try:
+            return self._resource(response)
+        except Exception as exc:
+            raise CalendlyAPIError(f"Invitee lookup failed: {exc}") from exc
+
+    async def get_scheduled_event(self, event_uri: str) -> dict:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(event_uri, headers=self._headers)
+        try:
+            return self._resource(response)
+        except Exception as exc:
+            raise CalendlyAPIError(f"Scheduled event lookup failed: {exc}") from exc
