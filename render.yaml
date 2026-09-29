@@ -2,7 +2,9 @@ services:
   - type: web
     name: frameops-booking-api
     runtime: python
+    plan: 0.5c-512mb
     buildCommand: pip install -r requirements.txt
+    preDeployCommand: alembic upgrade head
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
@@ -12,20 +14,14 @@ services:
         fromDatabase:
           name: frameops-booking-db
           property: connectionString
-      - key: CALENDLY_WEBHOOK_SIGNING_KEY
-        sync: false
-      - key: CALENDLY_API_TOKEN
-        sync: false
-      - key: RESEND_API_KEY
-        sync: false
-      - key: EMAIL_FROM
-        sync: false
       - key: ENVIRONMENT
         value: production
+      - fromGroup: frameops-booking-secrets
 
   - type: cron
     name: frameops-booking-email-worker
     runtime: python
+    plan: 0.5c-512mb
     buildCommand: pip install -r requirements.txt
     schedule: "*/1 * * * *"
     startCommand: python -m app.worker
@@ -36,14 +32,30 @@ services:
         fromDatabase:
           name: frameops-booking-db
           property: connectionString
+      - key: ENVIRONMENT
+        value: production
+      - fromGroup: frameops-booking-secrets
+
+envVarGroups:
+  - name: frameops-booking-secrets
+    envVars:
+      - key: CALENDLY_API_TOKEN
+        sync: false
+      - key: CALENDLY_WEBHOOK_SIGNING_KEY
+        sync: false
       - key: RESEND_API_KEY
         sync: false
       - key: EMAIL_FROM
         sync: false
-      - key: ENVIRONMENT
-        value: production
+      - key: OWNER_EMAIL
+        sync: false
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_PASSWORD
+        sync: false
 
 databases:
   - name: frameops-booking-db
+    plan: 0.1c-256mb
     databaseName: frameops_bookings
     user: frameops
