@@ -56,6 +56,6 @@ envVarGroups:
 
 databases:
   - name: frameops-booking-db
-    plan: 0.1c-256mb
+    plan: 256mb
     databaseName: frameops_bookings
     user: frameops
