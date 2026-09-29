@@ -1,20 +1,18 @@
-# Deploy FrameOps Booking Automation
+# Production deployment
 
-## Fastest production path: Render
+## Render
+Create a Blueprint from this repository. Use the supplied render.yaml.
 
-1. Connect this GitHub repository to Render and create a Blueprint.
-2. Render will create a FastAPI web service, PostgreSQL database, and 1-minute email worker.
-3. Add the required secrets:
-   - CALENDLY_WEBHOOK_SIGNING_KEY
-   - CALENDLY_API_TOKEN
-   - RESEND_API_KEY
-   - EMAIL_FROM
-4. Deploy and open `/health`.
-5. Create a Calendly webhook subscription for `invitee.created` and `invitee.canceled`.
-6. Point it at `https://YOUR-SERVICE.onrender.com/webhooks/calendly`.
-7. Use the same webhook signing key in Render.
+## Resend
+Verify your sending domain and set EMAIL_FROM to a verified address. Do not use the Resend development sender for the real business workflow.
 
-## Before production
+## Calendly
+Create the webhook subscription for invitee.created and invitee.canceled. Use the deployed callback URL and keep the webhook signing key in Render.
 
-- Verify the sending domain in Resend.
-- Test a real booking, cancellation, reschedule, duplicate delivery, and email retry.
+## Dashboard
+Open https://YOUR-SERVICE.onrender.com/admin and authenticate with ADMIN_USERNAME / ADMIN_PASSWORD.
+
+## Live test
+Book a real FrameOps discovery call with a test email. Verify Calendly -> webhook -> database -> worker -> Resend -> inbox. Then test cancellation or rescheduling.
+
+Never paste API tokens or webhook signing keys into GitHub issues, README files, or chat.
