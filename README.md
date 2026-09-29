@@ -1,48 +1,53 @@
-# FrameOps Booking Automation M1
+# FrameOps Booking Automation v2
 
-A production-oriented FastAPI webhook service for FrameOps/Calendly booking automation.
+Production-oriented Calendly booking automation for FrameOps.
 
-## What it does
+## Ships
 
-1. Receives Calendly `invitee.created` and `invitee.canceled` webhooks.
-2. Verifies the Calendly HMAC signature and rejects replayed requests.
-3. Stores accepted events.
-4. Prevents duplicate processing using an event ID.
-5. Optionally enriches invitee name/email through the Calendly API.
-6. Queues confirmation email work in a durable outbox.
-7. Sends confirmation emails through Resend via a worker.
-8. Exposes `/health` for deployment monitoring.
+- FastAPI webhook with Calendly HMAC verification and replay protection.
+- PostgreSQL event store and durable email outbox.
+- Calendly API enrichment in the worker.
+- Client confirmation + owner notification through Resend.
+- Retry/backoff and dead-letter handling.
+- Protected /admin dashboard with luxury black, silver/white and gold accents.
+- Alembic database migrations.
+- Render Blueprint for web + cron + Postgres.
+- GitHub Actions CI.
+- Raw webhook storage disabled by default.
 
-## Architecture
+Architecture: Calendly -> HTTPS webhook -> FastAPI -> PostgreSQL -> Email Outbox -> Cron Worker -> Calendly API + Resend
 
-Calendly → HTTPS webhook → FastAPI → signature verification → PostgreSQL → durable email outbox → Resend worker
+The webhook verifies and queues work quickly. The worker handles enrichment and delivery.
 
-## Why this is not a desktop .exe
+## Local
 
-A webhook endpoint must be reachable by Calendly over the public internet. The production service therefore runs on a hosted HTTPS platform. A future FrameOps admin app can monitor it.
+Python 3.12+:
 
-## Setup on Windows
+    py -3.12 -m venv .venv
+    .\\.venv\\Scripts\\Activate.ps1
+    pip install -r requirements.txt
+    Copy-Item .env.example .env
+    alembic upgrade head
+    uvicorn app.main:app --reload
 
-```powershell
-py -3.12 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-Copy-Item .env.example .env
-uvicorn app.main:app --reload
-```
-
-Health: `http://127.0.0.1:8000/health`
+Open /health and /admin on the local server.
 
 ## Production
 
-Use the included `render.yaml` with managed PostgreSQL. Store secrets in the host secret manager; never commit `.env`.
+Deploy the Render Blueprint. It creates an always-on web service, cron worker and managed Postgres.
 
-## Testing
+Set these secrets in Render: CALENDLY_API_TOKEN, CALENDLY_WEBHOOK_SIGNING_KEY, RESEND_API_KEY, EMAIL_FROM (verified Resend sender), OWNER_EMAIL, ADMIN_PASSWORD.
 
-```powershell
-pytest -q
-```
+Create Calendly webhooks for invitee.created and invitee.canceled pointing to https://YOUR-SERVICE.onrender.com/webhooks/calendly.
 
-## Security
+Do not commit .env or API keys.
 
-Do not disable signature verification, log webhook secrets, commit API tokens, or expose SQLite publicly.
+## Verification
+
+1. /health returns status=ok.
+2. /admin loads with authentication.
+3. A real Calendly booking creates the booking and two email jobs.
+4. Client receives the confirmation.
+5. Owner receives the notification.
+6. Cancellation/reschedule events appear correctly.
+7. Resend and Render logs show successful delivery.
