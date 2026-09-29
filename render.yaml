@@ -1,0 +1,49 @@
+services:
+  - type: web
+    name: frameops-booking-api
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.6
+      - key: DATABASE_URL
+        fromDatabase:
+          name: frameops-booking-db
+          property: connectionString
+      - key: CALENDLY_WEBHOOK_SIGNING_KEY
+        sync: false
+      - key: CALENDLY_API_TOKEN
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: ENVIRONMENT
+        value: production
+
+  - type: cron
+    name: frameops-booking-email-worker
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    schedule: "*/1 * * * *"
+    startCommand: python -m app.worker
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.6
+      - key: DATABASE_URL
+        fromDatabase:
+          name: frameops-booking-db
+          property: connectionString
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: ENVIRONMENT
+        value: production
+
+databases:
+  - name: frameops-booking-db
+    databaseName: frameops_bookings
+    user: frameops
