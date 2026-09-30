@@ -95,9 +95,11 @@ def extract_scheduled_time(payload: dict) -> str | None:
     direct = data.get("scheduled_time") or data.get("start_time") or data.get("event_start_time")
     if direct:
         return str(direct)
-    event = data.get("scheduled_event")
+
+    event = data.get("event") or data.get("scheduled_event")
     if isinstance(event, dict) and event.get("start_time"):
         return str(event["start_time"])
+
     return None
 
 
